@@ -163,6 +163,35 @@ pub fn read_string(reader: &mut ReaderCursor) -> ParserResult<String> {
     Ok(fstr)
 }
 
+pub fn read_characters(reader: &mut ReaderCursor, count: i32) -> ParserResult<String> {
+	let mut length = count;
+
+    if length == 0 {
+        return Ok("".to_owned());
+    }
+
+    let mut fstr;
+
+    if length < 0 {
+        length *= -1;
+        let mut u16bytes = vec![0u16; length as usize];
+        for i in 0..length {
+            let val = reader.read_u16::<LittleEndian>()?;
+            u16bytes[i as usize] = val;
+        }
+        u16bytes.pop();
+        fstr = String::from_utf16(&u16bytes)?;
+    } else {
+        let mut bytes = vec![0u8; length as usize];
+        reader.read_exact(&mut bytes)?;
+        fstr = std::str::from_utf8(&bytes)?.to_owned();
+        fstr.pop();
+    }
+
+    Ok(fstr)
+}
+
+
 #[derive(Debug)]
 struct FGenerationInfo {
     export_count: i32,
@@ -1468,7 +1497,8 @@ struct FRichCurveKey {
     interp_mode: u8,
     tangent_mode: u8,
     tangent_weight_mode: u8,
-    time: f32,
+	time: f32,
+	value: f32,
     arrive_tangent: f32,
     arrive_tangent_weight: f32,
     leave_tangent: f32,
@@ -1482,6 +1512,7 @@ impl NewableWithNameMap for FRichCurveKey {
             tangent_mode: reader.read_u8()?,
             tangent_weight_mode: reader.read_u8()?,
             time: reader.read_f32::<LittleEndian>()?,
+            value: reader.read_f32::<LittleEndian>()?,
             arrive_tangent: reader.read_f32::<LittleEndian>()?,
             arrive_tangent_weight: reader.read_f32::<LittleEndian>()?,
             leave_tangent: reader.read_f32::<LittleEndian>()?,
@@ -1505,6 +1536,20 @@ impl NewableWithNameMap for FSmartName {
     fn new_n(reader: &mut ReaderCursor, name_map: &NameMap, _import_map: &ImportMap) -> ParserResult<Self> {
         Ok(Self {
             display_name: read_fname(reader, name_map)?,
+        })
+    }
+}
+
+//Psychonauts 2 Dialogue System linecode
+#[derive(Debug, Serialize)]
+struct FLinecode {
+    name: String,
+}
+
+impl NewableWithNameMap for FLinecode {
+    fn new_n(reader: &mut ReaderCursor, _name_map: &NameMap, _import_map: &ImportMap) -> ParserResult<Self> {
+        Ok(Self {
+            name: read_characters(reader, 13)?,
         })
     }
 }
@@ -1578,7 +1623,8 @@ impl NewableWithNameMap for FScriptDelegate {
 
 impl UScriptStruct {
     fn new(reader: &mut ReaderCursor, name_map: &NameMap, import_map: &ImportMap, struct_name: &str) -> ParserResult<Self> {
-        let err = |v| ParserError::add(v, format!("Struct Type: {}", struct_name));
+		let err = |v| ParserError::add(v, format!("Struct Type: {}", struct_name));
+		println!("Working on a {} structure", struct_name);
         let struct_type: Box<dyn NewableWithNameMap> = match struct_name {
             "LinearColor" => Box::new(FLinearColor::new_n(reader, name_map, import_map).map_err(err)?),
             "Color" => Box::new(FColor::new_n(reader, name_map, import_map).map_err(err)?),
@@ -1612,7 +1658,8 @@ impl UScriptStruct {
             "RichCurveKey" => Box::new(FRichCurveKey::new_n(reader, name_map, import_map).map_err(err)?),
             "SimpleCurveKey" => Box::new(FSimpleCurveKey::new_n(reader, name_map, import_map).map_err(err)?),
             "DateTime" => Box::new(FDateTime::new_n(reader, name_map, import_map).map_err(err)?),
-            "Timespan" => Box::new(FDateTime::new_n(reader, name_map, import_map).map_err(err)?),
+			"Timespan" => Box::new(FDateTime::new_n(reader, name_map, import_map).map_err(err)?),
+			"Linecode" => Box::new(FLinecode::new_n(reader, name_map, import_map).map_err(err)?),
             _ => Box::new(FStructFallback::new_n(reader, name_map, import_map).map_err(err)?),
         };
         Ok(Self {
@@ -1944,7 +1991,9 @@ fn read_property_tag(reader: &mut ReaderCursor, name_map: &NameMap, import_map: 
 
     let property_type = read_fname(reader, name_map)?.trim().to_owned();
     let size = reader.read_i32::<LittleEndian>()?;
-    let array_index = reader.read_i32::<LittleEndian>()?;
+	let array_index = reader.read_i32::<LittleEndian>()?;
+	
+	println!("Reading property tag: {} ({})", name, property_type);
 
     let mut tag_data = match property_type.as_ref() {
         "StructProperty" => FPropertyTagData::StructProperty(read_fname(reader, name_map)?, FGuid::new(reader)?),
@@ -1978,10 +2027,11 @@ fn read_property_tag(reader: &mut ReaderCursor, name_map: &NameMap, import_map: 
         true => Some(FPropertyTagType::new(reader, name_map, import_map, property_type.as_ref(), Some(&tag_data)).map_err(|v| ParserError::add(v, property_desc))?),
         false => None,
     };
-    let final_pos = pos + (size as u64);
+	let final_pos = pos + (size as u64);
+
 
     if read_data && final_pos != reader.position() {
-        // println!("Could not read entire property: {} ({}) - {} {}", name, property_type, (final_pos as i64) - (reader.position() as i64), reader.position());
+        println!("Could not read entire property: {} ({}) - {} {}", name, property_type, (final_pos as i64) - (reader.position() as i64), reader.position());
     }
 
     if read_data {
@@ -2505,7 +2555,8 @@ impl Package {
                 "AnimSequence" => Box::new(UAnimSequence::new(&mut cursor, &name_map, &import_map)?),
                 "Skeleton" => Box::new(USkeleton::new(&mut cursor, &name_map, &import_map)?),
                 "CurveTable" => Box::new(UCurveTable::new(&mut cursor, &name_map, &import_map)?),
-                "SoundWave" => Box::new(USoundWave::new(&mut cursor, &name_map, &import_map, asset_length, export_size, &mut ubulk_cursor)?),
+				"SoundWave" => Box::new(USoundWave::new(&mut cursor, &name_map, &import_map, asset_length, export_size, &mut ubulk_cursor)?),
+				//"Function" => Box::new(UFunction::new(&mut cursor, &name_map, &import_map)?),
                 //"MaterialInstanceConstant" => Box::new(material_instance::UMaterialInstanceConstant::new(&mut cursor, &name_map, &import_map)?),
                 _ => Box::new(UObject::new(&mut cursor, &name_map, &import_map, &export_type)?),
             };
@@ -2526,13 +2577,23 @@ impl Package {
 
     pub fn from_file(file_path: &str) -> ParserResult<Self> {
         let asset_file = file_path.to_owned() + ".uasset";
+        let map_file = file_path.to_owned() + ".umap";
         let uexp_file = file_path.to_owned() + ".uexp";
         let ubulk_file = file_path.to_owned() + ".ubulk";
 
-        // read asset file
-        let mut asset = File::open(asset_file).map_err(|_v| ParserError::new(format!("Could not find file: {}", file_path)))?;
+        // read asset or map file
+        let asset_path = Path::new(&asset_file);
         let mut uasset_buf = Vec::new();
-        asset.read_to_end(&mut uasset_buf)?;
+		match metadata(asset_path).is_ok() {
+            true => {
+                let mut asset = File::open(asset_file)?;
+                asset.read_to_end(&mut uasset_buf)?;
+            },
+            false => {
+                let mut asset = File::open(map_file).map_err(|_v| ParserError::new(format!("Could not find file: {}", file_path)))?;
+                asset.read_to_end(&mut uasset_buf)?;
+            },
+        };
 
         // read uexp file
         let mut uexp = File::open(uexp_file)?;
@@ -2631,7 +2692,7 @@ fn get_export(export: &Box<dyn Any>) -> Option<&dyn PackageExport> {
     }
     if let Some(material) = export.downcast_ref::<material_instance::UMaterialInstanceConstant>() {
         return Some(material);
-    }
+	}
     None
 }
 
