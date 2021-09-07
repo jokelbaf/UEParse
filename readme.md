@@ -1,4 +1,10 @@
-## Fortnite Asset Parser
+## Unreal Engine 4 Asset Parser
+
+Generic Unreal Engine 4 asset parser.
+
+Based on an earlier commit of https://github.com/SirWaddles/JohnWickParse from before Fortnite-specific code was added that broke compatibility with other games.
+
+Original README:
 
 This program is able to parse pak, uexp and uasset files, and offers way to manage them.
 
