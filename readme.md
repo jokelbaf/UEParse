@@ -4,7 +4,10 @@ Generic Unreal Engine 4 asset parser.
 
 Based on an earlier commit of https://github.com/SirWaddles/JohnWickParse from before Fortnite-specific code was added that broke compatibility with other games.
 
-Original README:
+Designed to be generic but has explicit support for various games. Track compatibility here:
+https://github.com/JillCrungus/UEParse-Game-Support
+
+## Original README:
 
 This program is able to parse pak, uexp and uasset files, and offers way to manage them.
 
