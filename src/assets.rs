@@ -1554,6 +1554,21 @@ impl NewableWithNameMap for FLinecode {
     }
 }
 
+//Psychonauts 2 attribute
+#[derive(Debug, Serialize)]
+struct FP2Attribute {
+    P2Attribute_Unknown: i32,
+}
+
+impl NewableWithNameMap for FP2Attribute {
+	//This is just to stop the parser from failing, it's probably not accurate
+    fn new_n(reader: &mut ReaderCursor, _name_map: &NameMap, _import_map: &ImportMap) -> ParserResult<Self> {
+        Ok(Self {
+            P2Attribute_Unknown: reader.read_i32::<LittleEndian>()?,
+        })
+    }
+}
+
 #[derive(Debug, Serialize)]
 struct FCompressedSegment {
     start_frame: i32,
@@ -1624,8 +1639,9 @@ impl NewableWithNameMap for FScriptDelegate {
 impl UScriptStruct {
     fn new(reader: &mut ReaderCursor, name_map: &NameMap, import_map: &ImportMap, struct_name: &str) -> ParserResult<Self> {
 		let err = |v| ParserError::add(v, format!("Struct Type: {}", struct_name));
-		println!("Working on a {} structure", struct_name);
+		println!("Working on a {} structure at {}", struct_name, reader.position());
         let struct_type: Box<dyn NewableWithNameMap> = match struct_name {
+			//Generic
             "LinearColor" => Box::new(FLinearColor::new_n(reader, name_map, import_map).map_err(err)?),
             "Color" => Box::new(FColor::new_n(reader, name_map, import_map).map_err(err)?),
             "GameplayTagContainer" => Box::new(FGameplayTagContainer::new_n(reader, name_map, import_map).map_err(err)?),
@@ -1659,7 +1675,12 @@ impl UScriptStruct {
             "SimpleCurveKey" => Box::new(FSimpleCurveKey::new_n(reader, name_map, import_map).map_err(err)?),
             "DateTime" => Box::new(FDateTime::new_n(reader, name_map, import_map).map_err(err)?),
 			"Timespan" => Box::new(FDateTime::new_n(reader, name_map, import_map).map_err(err)?),
+
+			//Psychonauts 2
 			"Linecode" => Box::new(FLinecode::new_n(reader, name_map, import_map).map_err(err)?),
+			"P2Attribute" => Box::new(FP2Attribute::new_n(reader, name_map, import_map).map_err(err)?),
+			
+			//Fallback
             _ => Box::new(FStructFallback::new_n(reader, name_map, import_map).map_err(err)?),
         };
         Ok(Self {
@@ -1866,7 +1887,9 @@ pub enum FPropertyTagType {
     TextProperty(FText),
     StrProperty(String),
     NameProperty(String),
-    IntProperty(i32),
+	IntProperty(i32),
+	Int8Property(i8),
+	Int16Property(i16),
     UInt16Property(u16),
     UInt32Property(u32),
     UInt64Property(u64),
@@ -1902,6 +1925,8 @@ impl FPropertyTagType {
             "StrProperty" => FPropertyTagType::StrProperty(read_string(reader)?),
             "NameProperty" => FPropertyTagType::NameProperty(read_fname(reader, name_map)?),
             "IntProperty" => FPropertyTagType::IntProperty(reader.read_i32::<LittleEndian>()?),
+            "Int8Property" => FPropertyTagType::Int8Property(reader.read_i8()?),
+            "Int16Property" => FPropertyTagType::Int16Property(reader.read_i16::<LittleEndian>()?),
             "UInt16Property" => FPropertyTagType::UInt16Property(reader.read_u16::<LittleEndian>()?),
             "UInt32Property" => FPropertyTagType::UInt32Property(reader.read_u32::<LittleEndian>()?),
             "UInt64Property" => FPropertyTagType::UInt64Property(reader.read_u64::<LittleEndian>()?),
