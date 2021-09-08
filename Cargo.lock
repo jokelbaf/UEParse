@@ -3,6 +3,28 @@
 version = 3
 
 [[package]]
+name = "UEParse"
+version = "5.0.2"
+dependencies = [
+ "aes-soft",
+ "bit-vec",
+ "bitreader",
+ "block-modes",
+ "byteorder",
+ "erased-serde",
+ "flate2",
+ "glm",
+ "half",
+ "hex",
+ "image",
+ "lazy_static",
+ "libloading",
+ "serde",
+ "serde_derive",
+ "serde_json",
+]
+
+[[package]]
 name = "adler"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -314,28 +336,6 @@ name = "itoa"
 version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dc6f3ad7b9d11a0c00842ff8de1b60ee58661048eb8049ed33c73594f359d7e6"
-
-[[package]]
-name = "john-wick-parse"
-version = "5.0.2"
-dependencies = [
- "aes-soft",
- "bit-vec",
- "bitreader",
- "block-modes",
- "byteorder",
- "erased-serde",
- "flate2",
- "glm",
- "half",
- "hex",
- "image",
- "lazy_static",
- "libloading",
- "serde",
- "serde_derive",
- "serde_json",
-]
 
 [[package]]
 name = "jpeg-decoder"

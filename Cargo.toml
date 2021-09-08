@@ -1,7 +1,7 @@
 [package]
-name = "john-wick-parse"
+name = "UEParse"
 version = "5.0.2"
-authors = ["Waddlesworth <github@genj.io>"]
+authors = ["Waddlesworth <github@genj.io>", "Jill"]
 edition = "2018"
 
 [dependencies]
