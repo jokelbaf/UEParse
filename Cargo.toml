@@ -11,7 +11,6 @@ serde = { version = "1.0", features = ["derive", "rc"] }
 serde_json = "1.0"
 serde_derive = "1.0"
 erased-serde = "0.3"
-block-modes = "0.3"
 bitreader = "0.3.1"
 image = "0.22"
 libloading = "0.5"
