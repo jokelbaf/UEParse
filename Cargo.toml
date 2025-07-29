@@ -1,8 +1,8 @@
 [package]
 name = "UEParse"
-version = "6.0.0"
+version = "7.0.0"
 authors = ["Waddlesworth <github@genj.io>", "Jill"]
-edition = "2018"
+edition = "2024"
 
 [dependencies]
 byteorder = "1.2"
@@ -11,15 +11,16 @@ serde = { version = "1.0", features = ["derive", "rc"] }
 serde_json = "1.0"
 serde_derive = "1.0"
 erased-serde = "0.3"
-aes-soft = "0.3"
 block-modes = "0.3"
 bitreader = "0.3.1"
-glm = "0.2"
 image = "0.22"
 libloading = "0.5"
 flate2 = "1.0"
 bit-vec = "0.6"
 lazy_static = "1.4.0"
+aes = "0.8.4"
+glm = { git = "https://github.com/jokelbaf/glm-rs.git", version = "0.3.0" }
+cipher = { version = "0.4.4", features = ["alloc", "block-padding"] }
 
 [dependencies.half]
 version ="1.3"
